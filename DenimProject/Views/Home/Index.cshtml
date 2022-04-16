@@ -16,9 +16,9 @@
         padding: 4px;
         cursor: default;
     }
-    .addImageDiv{
+    /*.addImageDiv{
         position: relative;
-    }
+    }*/
     .browseBtn {
         width: 100%;
         margin-top: 10px;
@@ -37,10 +37,10 @@
     /*.imagesBox > .addImageDiv{
         padding-right: 0;
     }*/
-    /*.cancelImage{
+    .cancelImage {
         position: absolute;
-        top: 0;
-        right: 3px;
+        top: -1.9em;
+        right: 0;
         cursor: pointer;
     }
     .cancelImage span{
@@ -49,7 +49,7 @@
     .cancelImage span:hover{
         color: #ffffff;
         text-shadow: 0 10px 10px #000000;
-    }*/
+    }
 </style>
 
 <link href="@Url.Content("~/assets/css/gallery.css")" rel="stylesheet" media="screen">
@@ -182,10 +182,13 @@
                                 <label class="col-sm-2 control-label">Add Images</label>
                                 <div class="col-sm-1" style="text-align: center;width: 10%;">
                                      <img id="uploadedImage" class="uploadedImage" style="width: 7em; " alt="uploadedImage" src="/assets/img/uploadFile.png">
+                                    <div class="cancelImage">
+                                        <span class="icon-cancel2"></span>
+                                    </div>
                                 <br>
                                         <button class="btn btn-warning browseBtn">Browse</button>
                                         <input type="file" class="btn btn-danger itemImageInput" accept="image/jpeg" onchange="previewFile(this);" autocomplete="off">
-                                        <input class="form-control txtPrefix" list="prefixes" placeholder="Prefix" style="text-align: center;" autocomplete="off">
+                                        <input class="form-control txtPrefix" list="prefixes" placeholder="Prefix" style="text-align: center;" autocomplete="off" required>
                                         <datalist id="prefixes">
                                             <option value="Front"></option>
                                             <option value="Back"></option>
@@ -199,9 +202,9 @@
                         </div>
                     </div>
                 </div>
-    
-    
-    
+
+
+
     @*<div class="panel-body body2">
 
                         <div class="form-group row gutter imagesRow">
@@ -227,7 +230,7 @@
                 </div>
                                 </div>
                             </div>
-                           
+
                         </div>*@
 
 
@@ -288,23 +291,64 @@
             $("body").removeClass("loading");
         }
     });
+
+
     $(document).ready(function () {
 
-
+        $(".addImagesBox").find(".cancelImage").hide()
 
         // *********************************** API IP & PORT (Required on All Pages)
         var api_ipAddress = '@System.Configuration.ConfigurationManager.AppSettings["ServiceIPAddress1"]';
         var api_port = '@System.Configuration.ConfigurationManager.AppSettings["ServicePort"]';
         //$(".body2").css("display", "none");
 
+          // ********************************************************************** Cancel Button
+        function getSingleImage(thisVal) {
+          //  $(thisVal).closest(".singleImage").hide();
+        }
+        $(document).on("click", ".cancelImage span", function (e) {
 
-        //$(".cancelImage span").click(function () {
-        //    $(this).closest(".addImageDiv").find(".uploadedImage").attr("src", "/assets/img/uploadFile.png");
-        //    $(this).closest(".addImageDiv").find(".cancelImage").addClass("hide")
+            var parentDiv = $(this).closest('.singleImage');
+            e.preventDefault()
+            // ############
+            var boxSelector;
+            boxSelector = ".imagesBox";
 
-        //    $(this).closest(".addImageDiv.noImage").unwrap();
+            $(this).closest(boxSelector).find("input[type=file]").val('');
+            $(this).closest(boxSelector).find(".uploadedImage").attr("src", "/assets/img/uploadFile.png");
 
-        //});
+
+            if (boxSelector == ".imagesBox") {
+                imgID = $(this).closest(boxSelector).find(".imgid").html();
+
+                //$(this).closest(".singleImage").hide();
+                //**************************************************************************** SAME ID PROBLEM
+                $.ajax({
+                url: "http://" + api_ipAddress + ":" + api_port + "/delitempic?_id=" + imgID,
+                type: "POST",
+                success: function (data) {
+                    parentDiv.remove()
+                    swal({
+                        title: "Image Deleted!",
+                        icon: "success",
+                        showConfirmButton: false,
+                        time: 5000
+                    });
+
+                }, error: function (err) {
+                    console.log(err.statusText)
+                    
+                    //$(this).parents('.singleImage').css("background", "red !important");
+                    swal({
+                        title: "Image Not Deleted! See Console!",
+                        icon: "error",
+                        showConfirmButton: false,
+                        time: 5000
+                    });
+                }
+            });
+            }
+        });
 
         $("input").prop("autocomplete", "off");
         var newImageBody;
@@ -313,64 +357,82 @@
         // **************************************** IMAGE UPLOAD CODE
 
         $(document).on("click", ".imgUploadBtn", function () {
+            $(".txtPrefix").removeClass("inp-error");
 
+            if ($(this).closest(".addImagesBox").find("input[type=file]").get(0).files.length === 0) {
+                swal({
+                    title: "No Image Selected!",
+                    icon: "error",
+                    showConfirmButton: false,
+                    time: 5000
+                });
+            }
+            else if ($(this).closest(".addImagesBox").find(".txtPrefix").val() == "") {
+                swal({
+                    title: "Enter Prefix!",
+                    icon: "error",
+                    showConfirmButton: false,
+                    time: 5000
+                });
+                $(this).closest(".addImagesBox").find(".txtPrefix").addClass("inp-error")
+            }
+            else {
+                var fileName = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0].name;
+                var imageFile = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0];
+                var imageType = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0].type;
+                var fileExtension = fileName.replace(/^.*\./, '');
 
+                var imageData = {};
+                var qrcode = $("#txtQr").val();
+                var prefix = $(this).closest(".addImagesBox").find(".txtPrefix").val();
+                var imageformat = imageType;
+                var itempicture = imageFile;
 
-            var fileName = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0].name;
-            var imageFile = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0];
-            var imageType = $(this).closest(".addImagesBox").find("input[type=file]").get(0).files[0].type;
-            var fileExtension = fileName.replace(/^.*\./, '');
+                var formData = new FormData();
+                formData.append("qrcode", qrcode)
+                formData.append("prefix", prefix)
+                formData.append("imageformat", fileExtension)
+                formData.append("itempicture", itempicture)
 
-            var imageData = {};
-            var qrcode = $("#txtQr").val();
-            var prefix = $(this).closest(".addImagesBox").find(".txtPrefix").val();
-            var imageformat = imageType;
-            var itempicture = imageFile;
+                console.log(formData);
 
-            var formData = new FormData();
-            formData.append("qrcode", qrcode)
-            formData.append("prefix", prefix)
-            formData.append("imageformat", fileExtension)
-            formData.append("itempicture", itempicture)
+                $.ajax({
+                    url: "http://" + api_ipAddress + ":" + api_port + "/uploaditempicture",
+                    type: "POST",
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function (data) {
 
-            console.log(formData);
+                        console.log("Success");
+                        console.log(data);
 
-            $.ajax({
-                url: "http://" + api_ipAddress + ":" + api_port +"/uploaditempicture",
-                type: "POST",
-                contentType: false,
-                processData: false,
-                data: formData,
-                success: function (data) {
+                        swal({
+                            title: "Image Uploaded!",
+                            icon: "success",
+                            showConfirmButton: false,
+                            time: 5000
+                        });
 
-                    console.log("Success");
-                    console.log(data);
+                        var query = window.location.search.substring(1);
+                        var vars = query.split("=");
+                        var urlID = vars[1];
+                        if (vars != "") {
+                            window.location.reload();
+                        }
 
-                    swal({
-                        title: "Image Uploaded!",
-                        icon: "success",
-                        showConfirmButton: false,
-                        time: 5000
-                    });
-
-                    var query = window.location.search.substring(1);
-                    var vars = query.split("=");
-                    var urlID = vars[1];
-                    if (vars != "") {
-                        window.location.reload();
+                    }, error: function (err) {
+                        console.log(err.statusText)
+                        swal({
+                            title: "Not Uploaded!",
+                            text: JSON.stringify(err.statusText),
+                            icon: "error",
+                            showConfirmButton: false,
+                            time: 5000
+                        });
                     }
-
-                }, error: function (err) {
-                    console.log(err)
-                    swal({
-                        title: "Not Uploaded!",
-                        text: JSON.stringify(err.responseText),
-                        icon: "error",
-                        showConfirmButton: false,
-                        time: 5000
-                    });
-                }
-            });
+                });
+            }
 
         });
         $(document).on("change", "input[type=file]", function () {
@@ -383,7 +445,7 @@
             console.log(imageFile);
 
             if (fileName != "uploadFile.png") {
-                var imageData = {};
+                //$(this).closest(".addImagesBox").find(".cancelImage").show();
             }
 
 
@@ -398,11 +460,14 @@
         var urlID = vars[1];
         if (vars == "") {
 
+            $(".row.addImagesBox").hide();
+
+
             $("#btnFormUpdate").closest(".form-group").remove();
             $(".baguetteBoxThree.gallery").prev().remove();
-        // ************************************************** ADD ITEM DETAILS
+        // ****************************************************************************** ADD ITEM DETAILS
 
-           $(".body2").hide();
+          // $(".body2").hide();
 
 
             //$("#txtStyle").val("txtStyle");
@@ -415,7 +480,6 @@
 
             $("form").on('submit', (function (e) {
                 e.preventDefault();
-
                 $("form input").removeClass("inp-error");
 
                 if (($("#txtStyle").val() == "")) {
@@ -448,6 +512,8 @@
                     saveData.size = $("#txtSize").val();
                     console.log(saveData)
 
+
+                    var qrCode = $("#txtQr").val();
                     $.ajax({
 
                         url: "http://" + api_ipAddress + ":" + api_port +"/newitem",
@@ -466,21 +532,30 @@
                                 time: 5000
                             });
 
-                            $(".body1").hide("200");
-                            $(".body2").show("600");
+                            setTimeout(function () {
+                                window.location.href = "/addItems?id=" + qrCode;
+                            }, 2500); //will call the function after 2.5 secs.
+
+
+                            // ** NOT NEEDED AFTER REDIRECTION CODE ABOVE
+                            //$(".body1").hide("200");
+                            //$(".body2").show("600");
 
                         }, error: function (err) {
 
-                            console.log(err)
-
-                            swal("Error!", JSON.stringify(err.responseText), {
+                            console.log(err.statusText)
+                            swal({
+                                title: "Error!",
+                                text: "Data Not Added! See Console!",
                                 icon: "error",
-                                buttons: {
-                                    confirm: {
-                                        className: 'btn btn-danger'
-                                    }
-                                },
+                                showConfirmButton: false,
+                                time: 5000
                             });
+
+                            // ** FOR TESTING
+                            //setTimeout(function () {
+                            //    window.location.href = "/addItems?id=" + qrCode;
+                            //}, 2500);
 
                         }
                     });
@@ -490,7 +565,7 @@
         else {
             // GET ITEM DETAILS
             $("#submitBtn").closest(".form-group").remove();
-
+            $("#txtQr").prop("disabled", true)
             // -------------------------------------------------------- UPDATE FORM DATA
             $("form").on('submit', (function (e) {
                 e.preventDefault();
@@ -541,12 +616,8 @@
                                 showConfirmButton: false,
                                 time: 5000
                             });
-
-
                         }, error: function (err) {
-
-                            console.log(err)
-
+                            console.log(err.statusText)
                             swal({
                                 title: "Error!",
                                 text: "Data Not Updated! See Console",
@@ -592,19 +663,20 @@
 
                             for (var i = 0; i < result.length; i++) {
                                 $(".body2").find(".imagesBox .col-sm-9").prepend('\
-                                    <div class="col-sm-2" style="padding-left: 2px;padding-right: 2px;"">\
-                                        <a href="'+ result[i].url+'" class="effects">\
-                                            <img src="'+ result[i].url + '" class="img-responsive" alt="' + result[i].url +'">\
-                                            <div class="overlay">\
-                                                <span class="expand">+</span>\
-                                            </div>\
-                                        </a>\
+                                    <div class="col-sm-2 singleImage" style="padding-left: 5px;padding-right: 5px;"">\
+                                    <div class="cancelImage">\
+                                        <span class="icon-cancel2"></span>\
+                                    </div>\
+                                    <p class="imgid hide">'+ result[i]._id +'</p>\
+                                    <a href="'+ result[i].url+'" class="effects">\
+                                        <img src="'+ result[i].url + '" class="img-responsive" alt="prod-image">\
+                                    </a>\
                                     <input type="text" class="form-control txtPrefix2 text-center" value="' + result[i].desc +'" style="top: -0.5em;" disabled>\
                                     </div>');
                             }
 
                         }, error: function (err) {
-                            console.log(err.responseText)
+                            console.log(err.statusText)
                             swal({
                                 title: "Error!",
                                 text: "Cannot Get Images! See Console.",
@@ -615,7 +687,7 @@
                         }
                     });
                 }, error: function (err) {
-                    console.log(err.responseText)
+                    console.log(err.statusText)
                     swal({
                         title: "Error!",
                         text: "Cannot Get Data! See Console.",

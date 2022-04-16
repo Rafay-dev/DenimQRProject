@@ -87,6 +87,12 @@
         var api_ipAddress = '@System.Configuration.ConfigurationManager.AppSettings["ServiceIPAddress1"]';
         var api_port = '@System.Configuration.ConfigurationManager.AppSettings["ServicePort"]';
 
+        
+        var totalPics;
+
+        // ********************************************************* GET IMAGES TOTAL COUNT
+       
+
         $.ajax({
             url: "http://" + api_ipAddress + ":"+api_port+"/getitems?page=0&size=100",
             dataType: "JSON",
@@ -96,7 +102,20 @@
                 console.log(data)
                 $("tbody").empty()
                 for (var i = 0; i < data.docs.length; i++) {
-                    console.log(data.docs[i].style)
+                    
+
+                    $.ajax({
+                        url: "http://" + api_ipAddress + ":" + api_port + "/getitemspictureslist?qrcode=" + data.docs[i]._id,
+                        type: "GET",
+                        contentType: "application/json",
+                        dataType: "json",
+                        success: function (result) {
+
+                            console.log("------------------- GET IMAGES BY QR");
+                            console.log(result);
+                            
+                        }
+                    });
 
                     $("tbody").append('\
                                 <tr>\
@@ -119,7 +138,7 @@
             },
             error: function (err) {
 
-                console.log(err.responseText)
+                console.log(err.statusText)
                 swal({
                     title: "Error!",
                     text: "Cannot Get Data! See Console.",
